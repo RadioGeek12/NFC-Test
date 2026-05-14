@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Tag Reader</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; }
+        button { padding: 15px 25px; font-size: 18px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        #output { margin-top: 30px; padding: 20px; border: 1px solid #ddd; min-height: 50px; border-radius: 5px; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+
+    <h1>NFC Tag Reader</h1>
+    <p>Tap the button below and scan an NFC tag.</p>
+    
+    <button id="scanBtn">Scan NFC Tag</button>
+
+    <div id="output">Scan results will appear here...</div>
+
+    <script>
+        const scanBtn = document.getElementById('scanBtn');
+        const output = document.getElementById('output');
+
+        scanBtn.addEventListener('click', async () => {
+            // 1. Check if the browser supports Web NFC
+            if (!('NDEFReader' in window)) {
+                output.innerHTML = '<span class="error">Web NFC is not supported on this browser/device. Use Chrome on Android.</span>';
+                return;
+            }
+
+            try {
+                // 2. Initialize the NDEFReader
+                const ndef = new NDEFReader();
+                
+                // 3. Start scanning (this triggers the permission prompt)
+                await ndef.scan();
+                output.innerText = "Scanning... Bring an NFC tag close to your phone.";
+
+                // 4. Handle reading events
+                ndef.onreading = event => {
+                    const decoder = new TextDecoder();
+                    let message = "Tag found! Contents:<br>";
+
+                    for (const record of event.message.records) {
+                        // Decode the data based on its type
+                        if (record.recordType === "text") {
+                            message += `<b>Text:</b> ${decoder.decode(record.data)}<br>`;
+                        } else if (record.recordType === "url") {
+                            message += `<b>URL:</b> ${decoder.decode(record.data)}<br>`;
+                        } else {
+                            message += `<b>Type:</b> ${record.recordType} (Data length: ${record.data.byteLength} bytes)<br>`;
+                        }
+                    }
+                    output.innerHTML = message;
+                };
+
+                ndef.onreadingerror = () => {
+                    output.innerHTML = '<span class="error">Cannot read data from the NFC tag. Try another one.</span>';
+                };
+
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        });
+    </script>
+</body>
+</html>
